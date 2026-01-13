@@ -2,75 +2,64 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
-const bodyParser = require("body-parser");
-const jsonParser = bodyParser.json();
-
 const connectDB = require("./config/db");
-
 const userRoutes = require("./routes/userRoutes");
 const articleRoutes = require("./routes/articleRoutes");
 
 const app = express();
 
-// Database Connection
+// 1. Database Connection
 connectDB();
 
-app.use(express.json());
+// 2. Body Parsers (only need one or the other in most cases)
+app.use(express.json());              // for JSON payloads
+app.use(express.urlencoded({ extended: true })); // for form-urlencoded
 
-//Middleware
-app.use(jsonParser);
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors());
+// 3. Serve static files (uploads folder)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// 4. CORS - Pick **ONE** approach (this is the cleanest & recommended)
 const corsOptions = {
-  origin: "*", // Allow all origins
-  credentials: true, // Allow credentials
+  origin: "*",                        // ← Change to your actual frontend URL(s) in production!
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
-  preflightContinue: false,
-  optionsSuccessStatus: 204, // For legacy browser support
 };
-app.options("", cors(corsOptions)); // Pre-flight request for all routes
+
 app.use(cors(corsOptions));
 
-// Curb Cores Error by adding a header here
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content, Accept, Content-Type, Authorization"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-  );
-  next();
-});
+// Optional: handle preflight OPTIONS requests explicitly (usually not needed with cors middleware)
+app.options("*", cors(corsOptions));
 
-// Routes
+// 5. Routes
 app.use("/api/users", userRoutes);
 app.use("/api/articles", articleRoutes);
 
-//Getting UI
+// 6. Optional: Serve React/Vite frontend in production (uncomment & adjust when ready)
 // if (process.env.NODE_ENV === "production") {
-//     const root = path.join(__dirname, '../robles-front-end/dist');
-//     app.use(express.static(root));
-//     app.all('/{*any}', (req, res, next) => {
-//         res.sendFile(path.join(root, 'index.html'));
-//     })
-//     // app.get('*', (req, res) => {
-//         // res.sendFile(path.join(root, 'index.html'));
-//     // });
+//   const root = path.join(__dirname, "../robles-front-end/dist");
+//   app.use(express.static(root));
+//   app.get("*", (req, res) => {
+//     res.sendFile(path.join(root, "index.html"));
+//   });
 // }
 
-// Error Handling
+// 7. 404 handler (good practice)
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// 8. Global error handler (should be last)
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: "Server Error" });
+  console.error("Server Error:", err.stack);
+  const status = err.status || 500;
+  res.status(status).json({
+    message: status === 500 ? "Internal Server Error" : err.message,
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+  });
 });
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
