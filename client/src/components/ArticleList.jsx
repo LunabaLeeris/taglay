@@ -22,7 +22,7 @@ function ArticleList({ articles }) {
             {article.image ? (
               <div className="article-card__image">
                 <img
-                  src={`${BASE_URL}${article.image}`}
+                  src={article.image}
                   alt={article.title}
                 />
               </div>

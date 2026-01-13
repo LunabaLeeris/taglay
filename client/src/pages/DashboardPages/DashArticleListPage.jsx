@@ -26,8 +26,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
-const BASE_URL = import.meta.env.VITE_LOCAL_HOST;
-
 const modalStyle = {
   position: 'absolute',
   top: '50%',
@@ -79,6 +77,8 @@ const textFieldStyles = {
   },
 };
 
+
+
 function DashArticleListPage() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +94,15 @@ function DashArticleListPage() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  const fileToBase64 = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const loadArticles = async () => {
     try {
@@ -139,8 +148,10 @@ function DashArticleListPage() {
       setEditArticleId(id);
       setIsEditing(true);
       setImageFile(null);
+      
+      // REMOVE BASE_URL here because articleToEdit.image is now a full Vercel URL
       if (articleToEdit.image) {
-        setImagePreview(`${BASE_URL}${articleToEdit.image}`);
+        setImagePreview(articleToEdit.image); 
       } else {
         setImagePreview(null);
       }
@@ -179,25 +190,32 @@ function DashArticleListPage() {
 
   const handleSaveArticle = async () => {
     try {
-      const formData = new FormData();
-      formData.append('name', newArticle.name);
-      formData.append('title', newArticle.title);
-      formData.append('content', JSON.stringify(newArticle.content));
-      formData.append('isActive', newArticle.isActive);
-
+      // 1. Prepare the base object
+      const articlePayload = {
+        name: newArticle.name,
+        title: newArticle.title,
+        content: newArticle.content, // Send as array, server handles the rest
+        isActive: newArticle.isActive,
+      };
+  
+      // 2. If a new image was selected, convert it to Base64 and add to payload
       if (imageFile) {
-        formData.append('image', imageFile);
+        const base64String = await fileToBase64(imageFile);
+        articlePayload.imageBase64 = base64String;
       }
-
+  
+      // 3. Send as JSON instead of FormData
       if (isEditing) {
-        await updateArticle(editArticleId, formData);
+        await updateArticle(editArticleId, articlePayload);
       } else {
-        await createArticle(formData);
+        await createArticle(articlePayload);
       }
+  
       loadArticles();
       handleClose();
     } catch (error) {
       console.error('Error saving article:', error);
+      alert('Failed to save article. Check console for details.');
     }
   };
 
@@ -220,7 +238,7 @@ function DashArticleListPage() {
         params.row.image ? (
           <Avatar
             variant="rounded"
-            src={`${BASE_URL}${params.row.image}`}
+            src={params.row.image}
             alt={params.row.name}
             sx={{
               width: 50,

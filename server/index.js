@@ -7,29 +7,19 @@ const userRoutes = require("./routes/userRoutes");
 const articleRoutes = require("./routes/articleRoutes");
 
 const app = express();
-
-// 1. Database Connection
 connectDB();
 
-// 2. Body Parsers (only need one or the other in most cases)
-app.use(express.json());              // for JSON payloads
-app.use(express.urlencoded({ extended: true })); // for form-urlencoded
+app.use(express.json());             
+app.use(express.urlencoded({ extended: true })); 
 
-// 3. Serve static files (uploads folder)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// 4. CORS - Pick **ONE** approach (this is the cleanest & recommended)
 const corsOptions = {
-  origin: "*",                        // ← Change to your actual frontend URL(s) in production!
+  origin: process.env.FRONT_END_URL,                      
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
 app.use(cors(corsOptions));
-
-// Optional: handle preflight OPTIONS requests explicitly (usually not needed with cors middleware)
-app.options("*", cors(corsOptions));
 
 // 5. Routes
 app.use("/api/users", userRoutes);
@@ -44,7 +34,6 @@ app.use("/api/articles", articleRoutes);
 //   });
 // }
 
-// 7. 404 handler (good practice)
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });

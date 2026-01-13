@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@mui/icons-material": "^7.3.7"
+    "@mui/icons-material": "^7.3.7",
+    "@vercel/blob": "^2.0.0"
   }
 }

@@ -11,17 +11,13 @@ export const fetchArticleByName = (name) => API.get(`/${name}`);
 
 export const createArticle = (formData) => {
   return API.post('/', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'application/json' }
   });
 };
 
 export const updateArticle = (id, formData) => {
   return API.put(`/${id}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'application/json' }
   });
 };
 
